@@ -47,17 +47,17 @@ jobs:
       contents: write
     steps:
       - name: Checkout notes repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Checkout bot code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: ${{ inputs.bot_repository }}
           ref: ${{ inputs.bot_ref }}
           path: .bot
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.11'
 
