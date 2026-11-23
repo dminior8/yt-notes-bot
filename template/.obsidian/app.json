@@ -1,0 +1,7 @@
+{
+  "userIgnoreFilters": [
+    "README.md",
+    "prompt.md",
+    ".github/"
+  ]
+}

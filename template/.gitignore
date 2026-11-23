@@ -1,0 +1,11 @@
+# YouTube session cookies - never commit (login data)
+cookies.txt
+*cookies*.txt
+
+# Temporary audio downloaded by the bot during local runs
+temp_audio*
+
+# Obsidian: UI state and plugins (change on every open, some plugins store credentials)
+.obsidian/workspace*.json
+.obsidian/plugins/
+.obsidian/cache

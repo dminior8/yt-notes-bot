@@ -1,0 +1,22 @@
+name: YouTube AI Summarizer to Obsidian
+
+on:
+  schedule:
+    - cron: '0 20 * * *' # Daily at 20:00 UTC
+  workflow_dispatch: # Manual run button
+
+concurrency:
+  group: yt-summarizer
+  cancel-in-progress: false
+
+jobs:
+  summarize:
+    permissions:
+      contents: write
+    uses: dminior8/yt-notes-bot/.github/workflows/summarize.yml@master
+    secrets: inherit
+    # Optional overrides (defaults shown):
+    # with:
+    #   gemini_model: gemini-3.8-flash
+    #   gemini_fallback_models: gemini-3.6-flash,gemini-3.5-flash-lite,gemini-3.1-flash-lite
+    #   gemini_thinking_level: medium

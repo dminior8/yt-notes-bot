@@ -1,0 +1,10 @@
+# YouTube session cookies - never commit (login data)
+cookies.txt
+*cookies*.txt
+
+CLAUDE.md
+
+__pycache__/
+.venv/
+.idea/
+temp_audio*

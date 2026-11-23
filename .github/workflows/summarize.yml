@@ -1,0 +1,119 @@
+# Reusable workflow: called from a notes repo (see template/.github/workflows/notes.yml).
+# It checks out the calling notes repo, runs the bot from this repo against it and commits new notes back.
+name: Summarize to Obsidian notes
+
+on:
+  workflow_call:
+    inputs:
+      gemini_model:
+        type: string
+        default: gemini-3.8-flash
+      gemini_fallback_models:
+        type: string
+        default: gemini-3.6-flash,gemini-3.5-flash-lite,gemini-3.1-flash-lite
+      gemini_thinking_level:
+        type: string
+        default: medium
+      bot_repository:
+        description: Repository with the bot code (change it if you use a fork)
+        type: string
+        default: dminior8/yt-notes-bot
+      bot_ref:
+        description: Branch, tag or SHA of the bot code
+        type: string
+        default: master
+      timeout_minutes:
+        type: number
+        default: 45
+    secrets:
+      YOUTUBE_API_KEY:
+        required: true
+      GEMINI_API_KEY:
+        required: true
+      TELEGRAM_BOT_TOKEN:
+        required: true
+      TELEGRAM_CHAT_ID:
+        required: true
+      PLAYLIST_ID:
+        required: true
+      YOUTUBE_COOKIES:
+        required: false
+
+jobs:
+  summarize:
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout_minutes }}
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout notes repo
+        uses: actions/checkout@v4
+
+      - name: Checkout bot code
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.bot_repository }}
+          ref: ${{ inputs.bot_ref }}
+          path: .bot
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up Deno (JS runtime required by yt-dlp for YouTube)
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Install ffmpeg (audio extraction for Twitter/X and captionless videos)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+
+      - name: Install dependencies
+        run: pip install -U -r .bot/requirements.txt
+
+      - name: Run summarizer
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ inputs.gemini_model }}
+          GEMINI_FALLBACK_MODELS: ${{ inputs.gemini_fallback_models }}
+          GEMINI_THINKING_LEVEL: ${{ inputs.gemini_thinking_level }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          PLAYLIST_ID: ${{ secrets.PLAYLIST_ID }}
+          YOUTUBE_COOKIES: ${{ secrets.YOUTUBE_COOKIES }}
+          # Kept outside the notes repo so it can never be committed.
+          COOKIES_FILE: ${{ runner.temp }}/cookies.txt
+          # Without this Python buffers stdout and the Actions log appears only at the end.
+          PYTHONUNBUFFERED: "1"
+        run: |
+          echo "$YOUTUBE_COOKIES" > "$COOKIES_FILE"
+          # A prompt.md in the notes repo overrides the one shipped with the bot.
+          if [ -f prompt.md ]; then export PROMPT_FILE="$PWD/prompt.md"; fi
+          python .bot/summarizer.py
+
+      - name: Commit notes and execution history
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          touch processed_videos.txt
+          git add processed_videos.txt
+          if [ -d notes ]; then git add notes; fi
+          if git diff --staged --quiet; then
+            echo "Brak zmian do zapisania."
+            exit 0
+          fi
+          git commit -m "Auto-zapis: nowe notatki i historia filmów"
+          for attempt in 1 2 3; do
+            git pull --rebase origin "$GITHUB_REF_NAME"
+            if git push; then
+              exit 0
+            fi
+            echo "Push nieudany (próba ${attempt}/3), ponawiam..."
+            sleep 5
+          done
+          echo "Nie udało się wypchnąć zmian po 3 próbach."
+          exit 1
