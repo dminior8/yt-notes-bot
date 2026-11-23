@@ -1,5 +1,7 @@
 # Academic Notes for Obsidian (YouTube + Twitter/X)
 
+[![Latest release](https://img.shields.io/github/v/release/dminior8/yt-notes-bot)](https://github.com/dminior8/yt-notes-bot/releases/latest)
+
 Automated pipeline that turns YouTube playlist videos and Twitter/X videos sent to a Telegram bot into structured academic Markdown (`.md`) research notes for Obsidian. It runs on GitHub Actions and reports via Telegram.
 
 This repository holds only the code. The notes live in a separate (usually private) **notes repo**, which calls the reusable workflow from here on a schedule. See [Set Up Your Own Notes Repo](#set-up-your-own-notes-repo).
